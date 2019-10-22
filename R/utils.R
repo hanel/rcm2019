@@ -27,10 +27,9 @@
 #'   \item{`R_DATA_PATH`}{The path to store big data. Only local storage implemented at the moment.}
 #' }
 #'
-#' @param R_DATA_PATH
+#' @param R_DATA_PATH Path to "big" data
 #' @param renviron_path Path to .Renviron file
 #'
-#' @return
 #' @export init_package
 #'
 #' @examples
@@ -101,3 +100,17 @@ init_package = function(R_DATA_PATH = NULL, renviron_path = Sys.getenv("R_ENVIRO
    }
 
 }
+
+#' Sets working directory on the R_DATA_PATH
+#'
+#' Simply wrapper around `setwd(file.path(Sys.getenv('R_DATA_PATH'), dir))`
+#'
+#' @param dir subdirectory of R_DATA_PATH
+#'
+#' @export setdp
+#'
+#' @examples
+setdp = function(dir = ''){
+  setwd(file.path(Sys.getenv('R_DATA_PATH'), dir))
+}
+

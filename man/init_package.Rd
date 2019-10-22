@@ -8,6 +8,8 @@ init_package(R_DATA_PATH = NULL,
   renviron_path = Sys.getenv("R_ENVIRON_USER"))
 }
 \arguments{
+\item{R_DATA_PATH}{Path to "big" data}
+
 \item{renviron_path}{Path to .Renviron file}
 }
 \description{

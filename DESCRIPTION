@@ -1,14 +1,14 @@
 Package: rcm2019
-Title: What the Package Does (One Line, Title Case)
+Title: Hydroclimate Data Manipulation for the Czech Republic
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "Martin",
+           family = "Hanel",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
+           email = "hanel@fzp.czu.cz",
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: What license it uses
+Description: The package utilise various data sources and provides functions for easy manipulation and analysis of "big" data.
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.1.1
