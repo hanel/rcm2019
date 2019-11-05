@@ -24,6 +24,9 @@ ws = krov2wgs(s)
 rws = rotatePoly(ws)
 
 dem = raster('srtm_krov500r.tif')
+projection(dem) = s@proj4string
+asp = terrain(dem, opt = 'aspect')
+slo = terrain(dem, opt = 'slope')
 
 xy = coordinates(dem)
 xy = krov2wgs(SpatialPoints(xy))
@@ -50,11 +53,14 @@ finepreci = resample(kpreci, dem, method = 'ngb')
 setwd(file.path(Sys.getenv('R_DATA_PATH'), 'RCM2019', 'annual'))
 #setwd('/media/mha/KINGSTON/RCM2019/')
 
-p = brick('pr_EUR-11_CNRM-CERFACS-CNRM-CM5_rcp45_r1i1p1_SMHI-RCA4_v1_day_corr_19710101_21001231.nc')
+
+f = 'pr_EUR-11_CNRM-CERFACS-CNRM-CM5_rcp45_r1i1p1_SMHI-RCA4_v1_day_corr_19710101_21001231.nc'
+
+p = brick(f)
 
 
   cp = crop(p, buffer(rws, width = .2)) / 10 * 365.25
-
+  
   fillp = brick(cp)
   values(fillp) = NA_real_
 
@@ -63,26 +69,46 @@ p = brick('pr_EUR-11_CNRM-CERFACS-CNRM-CM5_rcp45_r1i1p1_SMHI-RCA4_v1_day_corr_19
     fillp[[i]] <- focal(cp[[i]], w = matrix(1,3,3), fun = fill.na, pad = TRUE, na.rm = FALSE )
   }
 
+  
+  fillp = disaggregate(fillp, fact = 10, method = 'bilinear')
+  
   e = extract(fillp, rxy)
   out = brick(dem, nl = nlayers(p))
   values(out) = e
 
-  dta = data.table(coordinates(out[[1]]), fiPR = values(finepreci), rPR = values(out[[1]]), ele = values(dem))
-
-  dta[, nx := scale(x)]
-  dta[, ny := scale(y)]
-  dta[, nrPR := scale(rPR)]
-  dta[, nele := scale(ele)]
-
-  m = lm(fiPR ~ x + y + rPR + ele, data = dta)
-  dta[(!is.na(fiPR) & !is.na(nele) & !is.na(nrPR)), PR := predict(m)]
-
-  res = raster(out)
-  values(res) = dta$PR
-
-
-
+  RES = brick(out)
+  values(RES) = 0
+    
+  ii = 80
+  
+  for (ii in 1:nlayers(out)){
+  
+    cat(ii, '\t')
+    dta = data.table(coordinates(out[[1]]), fiPR = values(finepreci), rPR = values(out[[ii]]), ele = values(dem), asp = values(asp), slo = values(slo))
+  
+    dta[, nx := scale(x)]
+    dta[, ny := scale(y)]
+    dta[, nrPR := scale(rPR)]
+    dta[, nele := scale(ele)]
+    dta[, nasp := scale(asp)]
+    dta[, nslo := scale(slo)]
+    dta[, nfiPR := scale(fiPR)]
+    
+    m = lm(rPR ~ nx + ny + nfiPR + nele + nasp , data = dta)
+    dta[(!is.na(fiPR) & !is.na(nele) & !is.na(nrPR) & !is.na(asp)), PR := predict(m)]
+  
+    res = raster(out)
+    values(res) = dta$PR
+    RES[[ii]] = res
+  }
+  
+  RES = mask(crop(RES, s), s)
+  
+  setdp(file.path('MELICHAR', 'PR'))
+  RES@z = list(Date = unique(year(p@z$Date)) )
+  writeRaster(RES, filename = f, overwrite = TRUE)
+  
 ####
 
-pp = cp[[1]]
-dpp = disaggregate(pp, fact = 10, method = 'bilinear')
+pp = fillp[[1]]
+dpp = disaggregate(fillp, fact = 10, method = 'bilinear')
