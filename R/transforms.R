@@ -52,11 +52,11 @@ rotated_grid_transform = function(grid_in, option = '2rot', SP_coor = c(39.25, -
   lon_new = (lon_new*180)/pi; # Convert radians back to degrees
   lat_new = (lat_new*180)/pi;
 
-  if (option == '2rot') return(data.table(X = -lon_new, Y = -lat_new)) else return(data.table(lon_new = -X, lat_new = -Y))
+  if (option == '2rot') return(data.table(X = -lon_new, Y = -lat_new)) else return(data.table(lon_new = lon_new, lat_new = lat_new))
 
 }
 
-
+#rotated_grid_transform(rotated_grid_transform(t(c(14.12, 50.5)) ))
 
 
 #' Transforms shapefile to rotated coordinates
@@ -86,4 +86,12 @@ rotatePoly = function(shp, ...){
     }
   }
   return(E)
+}
+
+
+rotatePoints = function(shp, ...){
+  
+  pom = rotated_grid_transform(shp@coords, option = '2rot')
+  return(SpatialPoints(pom))
+   
 }
