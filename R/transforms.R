@@ -89,9 +89,20 @@ rotatePoly = function(shp, ...){
 }
 
 
+#' Rotate spatial points
+#'
+#' The functions uses `rcm2019::rotated_grid_transform` to rotate coordinates of the points from the shape file
+#'
+#' @param shp SpatialPoints or SpatialPointsDataFrame
+#' @param ...
+#'
+#' @return SpatialPoints at rotated coordinates
+#' @export rotatePoints
+#'
+#' @examples
 rotatePoints = function(shp, ...){
-  
+
   pom = rotated_grid_transform(shp@coords, option = '2rot')
   return(SpatialPoints(pom))
-   
+
 }
