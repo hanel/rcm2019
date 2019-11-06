@@ -1,0 +1,24 @@
+Soubory vycházejí z jmenné konvence z projektu CORDEX, např.:
+
+tas_EUR-11_NCC-NorESM1-M_rcp45_r1i1p1_DMI-HIRHAM5_v2_day_corr_19710101_21001231.nc
+
+mezi podtržítky je
+
+- proměnná (pr - srážky, tas - teplota)
+- doména (zde vždy EUR-11 - tj. Evropa na 0.11 st. gridu)
+- GCM model
+- RCP
+- id běhu v ensemblu
+- RCM model
+- verze
+- časové rozlišení [zde day - data pochází z denní simulace]
+- corr - jde o korigovaná data - korekci provedl CzechGlobe
+- datum od
+- datum do
+
+Využito bylo 7 RCM simulací vybraných CzechGlobem, každá dle 2 scénářů RCP (4.5 a 8.5) + pozorovaná gridovaná data (ozn. OBS).
+
+Součástí zpracování byla korekce teploty na nadmořskou výšku do 500 m gridu. U teploty prostorový signál pochází dominantně z nadmořské výšky, ostatní vlivy se projevují méně. 
+
+Srážky byly interpolovány pomocí lineárního modelu do 500 m sítě na základě nadm. výšky, souřadnic a orientace svahů.
+

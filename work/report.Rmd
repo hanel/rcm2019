@@ -1,0 +1,102 @@
+---
+title: "Odvození rastrů ročních průměrů"
+author: "Martin Hanel"
+date: "6 11 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE, cache = TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+require(hydroCR)
+require(rcm2019)
+
+
+fill.na <- function(x, i=5) {
+  if( is.na(x)[i] ) {
+    return( round(mean(x, na.rm = TRUE), 4) )
+  } else {
+    return( x[i] )
+  }
+}
+
+preciwei = function(x){
+
+  w = x/sum(x)
+  return(w/sum(w))
+}
+
+################
+
+setwd('/home/mha/Dropbox/melichar/data/GIS/')
+s = readOGR('PLO40hranice_S-JTSK_Krovak_East_North.shp')
+ws = krov2wgs(s)
+rws = rotatePoly(ws)
+
+dem = raster('srtm_krov500r.tif')
+projection(dem) = s@proj4string
+asp = terrain(dem, opt = 'aspect')
+slo = terrain(dem, opt = 'slope')
+
+xy = coordinates(dem)
+xy = krov2wgs(SpatialPoints(xy))
+
+rxy = rotatePoints(xy)
+
+setdp('chars')
+
+preci = raster('srazky_8110.nc')
+kpreci = projectRaster(preci, crs = s@proj4string)
+
+#temp = raster('teplota_8110.tif')
+#ktemp = projectRaster(temp, crs = s@proj4string)
+
+preci = crop(preci, buffer(ws, 0.2))
+pxy = coordinates(preci)
+rpxy = rotatePoints(SpatialPoints(pxy))
+rpxy = SpatialPointsDataFrame(rpxy, data = data.frame(PR = values(preci)))
+
+finepreci = resample(kpreci, dem, method = 'ngb')
+
+#ktemp = crop(ktemp, buffer(s, 10000))
+
+setwd(file.path(Sys.getenv('R_DATA_PATH'), 'RCM2019', 'annual'))
+#setwd('/media/mha/KINGSTON/RCM2019/')
+
+
+d = dir(pattern = 'tas_')
+
+f = d[1]
+setwd(file.path(Sys.getenv('R_DATA_PATH'), 'RCM2019', 'annual'))
+
+p = brick(f, varname = 'pr')
+
+```
+
+# Data
+
+- korigované simulace regionálních klimatických modelů z projektu CORDEX (dle výběru CzechGlobu)
+- digitální model terénu (dem) v rozlišení 500 m (zdroj: SRTM)
+- 1 km x 1 km vrstva průměrných srážek a teploty pro ČR (1980-2010)
+
+# Teplota
+
+Původní RCM data (viz obr. níže vlevo) byla bilineárně interpolována do 1 km rozlišení (obr. vpravo)
+
+```{r, cache = TRUE}
+par(mfrow = c(1, 2))
+plot(p[[1]] )
+plot(disaggregate(p[[1]], fact = 10, method = 'bilinear'))
+```
+
+Následně byla vytvořena na základě dem korekční vrstva opravující teplotu o 0.65 st. C / 100 m nadm. výšky (níže vlevo). Tato vrstva byla použita ke korekci RCM interpolované vrstvy.
+
+```{r}
+aele = cellStats(mask(dem, s), mean)
+cdem = ((aele-dem)/100)*0.65
+par(mfrow = c(1, 2))
+plot(cdem)
+plot(disaggregate(p[[1]], fact = 10, method = 'bilinear'))
+
+```
+

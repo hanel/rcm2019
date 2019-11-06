@@ -58,14 +58,16 @@ f = 'pr_EUR-11_CNRM-CERFACS-CNRM-CM5_rcp45_r1i1p1_SMHI-RCA4_v1_day_corr_19710101
 
 d = dir(pattern = 'pr_')
 
+f = d[1]
 for (f in d){
 
   setdp(file.path('MELICHAR', 'PR'))
   if (file.exists(f)) next
 
+  cat(f, '\n\n')
   setwd(file.path(Sys.getenv('R_DATA_PATH'), 'RCM2019', 'annual'))
 
-  p = brick(f)
+  p = brick(f, varname = 'pr')
 
 
   cp = crop(p, buffer(rws, width = .2)) / 10 * 365.25
@@ -108,14 +110,17 @@ for (f in d){
 
     res = raster(out)
     values(res) = dta$PR
+    #names(res) = unique(p@z$Date)[ii]
     RES[[ii]] = res
   }
 
   RES = mask(crop(RES, s), s)
-
+  names(RES) = year(unique(p@z$Date))
+  RES@z = list(unique(year(p@z$Date)))
+  
   setdp(file.path('MELICHAR', 'PR'))
-  RES@z = list(Date = unique(year(p@z$Date)) )
-  writeRaster(RES, filename = f, overwrite = TRUE)
+  #RES@z = list(unique(year(p@z$Date)))
+  writeRaster(RES, filename = f, overwrite = TRUE, varname = 'pr', varunit = 'mm/year', longname = 'precipitation', xname = 'x', yname = 'y', zname = 'time', zunit = 'year')
 
 }
 

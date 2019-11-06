@@ -32,11 +32,14 @@ xy = coordinates(dem)
 xy = krov2wgs(SpatialPoints(xy))
 
 rxy = rotatePoints(xy)
+rxy = SpatialPointsDataFrame(rxy, data = data.frame(ele = values(dem)))
 
 setdp('chars')
 
 temp = raster('teplota_8110.tif')
 ktemp = projectRaster(temp, crs = s@proj4string)
+
+tmp_obs = cellStats(mask(ktemp, s), mean)
 
 preci = crop(temp, buffer(ws, 0.2))
 pxy = coordinates(preci)
@@ -59,16 +62,24 @@ f = d[1]
 
 for (f in d){
 
-  setdp(file.path('MELICHAR', 'PR'))
+  setdp(file.path('MELICHAR', 'TAS'))
   if (file.exists(f)) next
 
   setwd(file.path(Sys.getenv('R_DATA_PATH'), 'RCM2019', 'annual'))
 
-  p = brick(f)
+  cat('\n', f, '\n')
+  
+  p = brick(f, varname = "tas")
 
 
   cp = crop(p, buffer(rws, width = .2)) - 273.15
-
+  
+  rdem = rasterize(rxy, cp, fun = mean)[[2]]
+  ae = cellStats(rdem, mean)
+  lscor = ((rdem-ae)/100)*0.65
+  
+  cp = cp + lscor # remove the influence of elevation
+  
   fillp = brick(cp)
   values(fillp) = NA_real_
 
@@ -83,48 +94,24 @@ for (f in d){
   e = extract(fillp, rxy)
   out = brick(dem, nl = nlayers(p))
   values(out) = e
+  
   aele = cellStats(mask(dem, s), mean)
   cdem = ((aele-dem)/100)*0.65
 
-
-
-  RES = brick(out)
-  values(RES) = 0
-
-
-
-
-  ii = 80
-
-  for (ii in 1:nlayers(out)){
-
-    cat(ii, '\t')
-
-
-
-    dta = data.table(coordinates(out[[1]]), fiPR = values(finepreci), rPR = values(out[[ii]]), ele = values(dem), asp = values(asp), slo = values(slo))
-
-    dta[, nx := scale(x)]
-    dta[, ny := scale(y)]
-    dta[, nrPR := scale(rPR)]
-    dta[, nele := scale(ele)]
-    dta[, nasp := scale(asp)]
-    dta[, nslo := scale(slo)]
-    dta[, nfiPR := scale(fiPR)]
-
-    m = lm(rPR ~ nx + ny + nfiPR + nele + nasp , data = dta)
-    dta[(!is.na(fiPR) & !is.na(nele) & !is.na(nrPR) & !is.na(asp)), PR := predict(m)]
-
-    res = raster(out)
-    values(res) = dta$PR
-    RES[[ii]] = res
-  }
-
+  RES = out + cdem
+  names(RES) = year(unique(p@z$Date))
+  RES@z = list(unique(year(p@z$Date)))
+  
+  mea = cellStats(mask(mean(RES[[ which(RES@z[[1]] %in% c(1981:2010)) ]]), s), mean)
+  
+  RES = RES + tmp_obs - mea
+  
   RES = mask(crop(RES, s), s)
-
-  setdp(file.path('MELICHAR', 'PR'))
-  RES@z = list(Date = unique(year(p@z$Date)) )
-  writeRaster(RES, filename = f, overwrite = TRUE)
+  
+  RES@z = list(unique(year(p@z$Date)))
+  
+  setdp(file.path('MELICHAR', 'TAS'))
+  writeRaster(RES, filename = f, overwrite = TRUE, varname = 'tas', varunit = 'degree C', longname = 'temperature', xname = 'x', yname = 'y', zname = 'time', zunit = 'year')
 
 }
 
