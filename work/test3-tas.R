@@ -35,18 +35,15 @@ rxy = rotatePoints(xy)
 
 setdp('chars')
 
-preci = raster('srazky_8110.nc')
-kpreci = projectRaster(preci, crs = s@proj4string)
+temp = raster('teplota_8110.tif')
+ktemp = projectRaster(temp, crs = s@proj4string)
 
-#temp = raster('teplota_8110.tif')
-#ktemp = projectRaster(temp, crs = s@proj4string)
-
-preci = crop(preci, buffer(ws, 0.2))
+preci = crop(temp, buffer(ws, 0.2))
 pxy = coordinates(preci)
 rpxy = rotatePoints(SpatialPoints(pxy))
 rpxy = SpatialPointsDataFrame(rpxy, data = data.frame(PR = values(preci)))
 
-finepreci = resample(kpreci, dem, method = 'ngb')
+finepreci = resample(ktemp, dem, method = 'ngb')
 
 #ktemp = crop(ktemp, buffer(s, 10000))
 
@@ -54,9 +51,11 @@ setwd(file.path(Sys.getenv('R_DATA_PATH'), 'RCM2019', 'annual'))
 #setwd('/media/mha/KINGSTON/RCM2019/')
 
 
-f = 'pr_EUR-11_CNRM-CERFACS-CNRM-CM5_rcp45_r1i1p1_SMHI-RCA4_v1_day_corr_19710101_21001231.nc'
+#f = 'pr_EUR-11_CNRM-CERFACS-CNRM-CM5_rcp45_r1i1p1_SMHI-RCA4_v1_day_corr_19710101_21001231.nc'
 
-d = dir(pattern = 'pr_')
+d = dir(pattern = 'tas_')
+
+f = d[1]
 
 for (f in d){
 
@@ -68,7 +67,7 @@ for (f in d){
   p = brick(f)
 
 
-  cp = crop(p, buffer(rws, width = .2)) / 10 * 365.25
+  cp = crop(p, buffer(rws, width = .2)) - 273.15
 
   fillp = brick(cp)
   values(fillp) = NA_real_
@@ -84,15 +83,25 @@ for (f in d){
   e = extract(fillp, rxy)
   out = brick(dem, nl = nlayers(p))
   values(out) = e
+  aele = cellStats(mask(dem, s), mean)
+  cdem = ((aele-dem)/100)*0.65
+
+
 
   RES = brick(out)
   values(RES) = 0
+
+
+
 
   ii = 80
 
   for (ii in 1:nlayers(out)){
 
     cat(ii, '\t')
+
+
+
     dta = data.table(coordinates(out[[1]]), fiPR = values(finepreci), rPR = values(out[[ii]]), ele = values(dem), asp = values(asp), slo = values(slo))
 
     dta[, nx := scale(x)]
